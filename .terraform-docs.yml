@@ -42,13 +42,13 @@ content: |-
   ## Example with System Assigned Identity
 
   ```hcl
-  {{ include "examples/system_managed_identity/monitor.tf" }}
+  {{ include "examples/basic/system_assigned_identity/monitor.tf" }}
   ```
 
   ## Example with User Assigned Identity
 
   ```hcl
-  {{ include "examples/user_assigned_identity/monitor.tf" }}
+  {{ include "examples/basic/user_assigned_identity/monitor.tf" }}
   ```
 
   {{ .Requirements }}
