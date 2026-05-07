@@ -1,0 +1,19 @@
+// Track VM availability 
+// Display the VM's reported availability during the last 10 minutes.
+arg("").Resources
+| where type in~ ("microsoft.compute/virtualmachines", "microsoft.hybridcompute/machines", "microsoft.compute/virtualmachinescalesets")
+| where tags.alerting =~ "enabled"
+| extend ResourceId = tolower(id)
+| project ResourceId
+| join kind=inner (
+    Heartbeat
+    | where TimeGenerated >= ago(10m)
+    | extend ResourceId = tolower(_ResourceId)
+    | project ResourceId, OSType, TimeGenerated
+    )
+    on ResourceId
+| where OSType contains_cs "Windows"
+| summarize lastHeartbeat = max(TimeGenerated) by ResourceId, OSType
+| extend state = iff(datetime_diff("second", now(), lastHeartbeat) >= 300, "CRITICAL", "OK")
+| where state == "CRITICAL"
+| project ResourceId, OSType, TimeGenerated = lastHeartbeat, state

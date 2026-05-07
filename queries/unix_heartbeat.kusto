@@ -1,0 +1,18 @@
+// Track VM availability 
+arg("").Resources
+| where type in~ ("microsoft.compute/virtualmachines", "microsoft.hybridcompute/machines", "microsoft.compute/virtualmachinescalesets")
+| where tags.alerting =~ "enabled"
+| extend ResourceId = tolower(id)
+| project ResourceId
+| join kind=inner (
+    Heartbeat
+    | extend ResourceId = tolower(_ResourceId)
+    | project ResourceId, OSType, TimeGenerated
+    | summarize TimeGenerated = arg_max(TimeGenerated, OSType) by ResourceId
+    )
+    on ResourceId
+| where OSType contains_cs "Linux"
+| summarize lastHeartbeat = max(TimeGenerated) by ResourceId, OSType
+| extend state = iff(datetime_diff("second", now(), lastHeartbeat) >= 300, "CRITICAL", "OK")
+| where state == "CRITICAL"
+| project ResourceId, OSType, TimeGenerated = lastHeartbeat, state
