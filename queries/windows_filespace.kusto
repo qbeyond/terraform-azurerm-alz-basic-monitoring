@@ -1,0 +1,30 @@
+// less or equal than 10% Diskspace free (Windows)
+let VMs = arg("").Resources
+    | where type in~ ("microsoft.compute/virtualmachines", "microsoft.hybridcompute/machines", "microsoft.compute/virtualmachinescalesets")
+    | where tags.alerting =~ "enabled"
+    | where tolower(properties.storageProfile.osDisk.osType) == "windows"
+    | extend ResourceId = tolower(id)
+    | project ResourceId;
+let Disks = dynamic(["C:"]);
+let warning = int(10);
+let critical = int(5);
+InsightsMetrics
+    // | where TimeGenerated >= ago(5m) // Uncomment this line to only check the last "n" minutes/hours/days of data
+    | where Namespace == "LogicalDisk"
+    | where Name == "FreeSpacePercentage"
+    | extend Mountpoint = tostring(parse_json(Tags)["vm.azm.ms/mountId"])
+    | where Mountpoint in (Disks)
+    | where Val <= warning
+    | extend state = case(Val > critical, "Warning", Val <= critical, "Critical", "Warning")
+    | extend threshold = case(Val > critical, warning, Val <= critical, critical, warning)
+    | extend ResourceId = tolower(_ResourceId)
+    | summarize arg_max(TimeGenerated, *) by ResourceId, affected_object = toupper(tostring(split(ResourceId, "/")[-1])), Mountpoint
+    | project ResourceId, affected_object, Val, threshold, Mountpoint, state, TimeGenerated
+| join kind=inner hint.remote=left (
+    VMs
+) on ResourceId
+| extend monitor_description = strcat("Disk threshold reached: ≤ ", tostring(threshold), "% free. Please check disk space.")
+| extend value = round(Val, 2)
+| extend additional_information = strcat("Only ", tostring(value), " % Diskspace free.")
+| extend affected_entity = Mountpoint
+| project ResourceId, TimeGenerated, state, affected_object, threshold, value, affected_entity, additional_information
