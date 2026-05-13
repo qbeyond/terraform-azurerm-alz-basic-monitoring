@@ -53,7 +53,7 @@ locals {
       "microsoft.compute/virtualmachinescalesets"
     ]
     include_failing_periods = null
-    identity                = null
+    identity                = var.alert_rule_identity
   }
 
   rules = {     
