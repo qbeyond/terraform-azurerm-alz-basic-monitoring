@@ -57,17 +57,15 @@ module "monitoring" {
 }
 
 resource "azurerm_role_assignment" "monitoring_law_reader" {
-  for_each = module.monitoring.alert_rules_for_role_assignments
-
+  for_each             = module.monitor.scheduled_query_rules_v2
   scope                = local.law_output.id
   role_definition_name = "Log Analytics Reader"
-  principal_id         = each.value.principal_id
+  principal_id         = try(each.value.identity[0].principal_id, null)
 }
 
 resource "azurerm_role_assignment" "monitoring_reader" {
-  for_each = module.monitoring.alert_rules_for_role_assignments
-
+  for_each             = module.monitor.scheduled_query_rules_v2
   scope                = local.law_output.id
   role_definition_name = "Reader"
-  principal_id         = each.value.principal_id
+  principal_id         = try(each.value.identity[0].principal_id, null)
 }
