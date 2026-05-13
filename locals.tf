@@ -1,7 +1,7 @@
 locals {
   path = "${path.module}/queries"
 
-  rules = merge({
+  default_queries = merge({
     "alr-prd-Heartbeat-ux-law-metric-crit-01" : {
       description                       = "Alert when Heartbeat of Unix machines Stopped"
       query_path                        = "${local.path}/unix_heartbeat.kusto"
@@ -35,6 +35,36 @@ locals {
       mute_actions_after_alert_duration = "P1D"
     }
   })
+
+  empty_query_object = {
+    query_path                = null
+    description               = null
+    time_window               = "P2D"
+    frequency                 = "PT5M"
+    non_productive            = false
+    display_name              = null
+    query_time_range_override = null
+    enabled                   = true
+    severity                  = 0
+    skip_query_validation     = true
+    target_resource_types     = [
+      "microsoft.compute/virtualmachines",
+      "microsoft.hybridcompute/machines",
+      "microsoft.compute/virtualmachinescalesets"
+    ]
+    include_failing_periods = null
+    identity                = null
+  }
+
+  rules = {     
+    for key in setunion(keys(local.default_queries), keys(var.additional_queries)) :     
+      key => merge(
+        local.empty_query_object,       
+        lookup(local.default_queries, key, {}), # use defaults if present       
+        { for k, v in try(var.additional_queries[key], {}) : k => v if v != null } # apply overrides (empty map when missing)
+      )
+  }
+
   event_rule = {
     "alr-prd-Eventlog-win-law-logsea-crit-warn-01" : {
       description                       = "Alert when the Windows event was logged"

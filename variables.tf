@@ -21,6 +21,74 @@ variable "log_analytics_workspace" {
   DOC
 }
 
+variable "additional_queries" {
+  type = map(object({
+    query_path                        = optional(string)
+    description                       = optional(string)
+    time_window                       = optional(string)
+    frequency                         = optional(string)
+    non_productive                    = optional(bool, false)
+    display_name                      = optional(string)
+    query_time_range_override         = optional(string)
+    enabled                           = optional(bool)
+    severity                          = optional(number)
+    skip_query_validation             = optional(bool)
+    target_resource_types             = optional(list(string))
+    mute_actions_after_alert_duration = optional(string)
+    include_failing_periods           = optional(object({
+      minimum_failing_periods_to_trigger_alert = number
+      number_of_evaluation_periods             = number
+    }))
+
+    identity = optional(object({
+      type         = string
+      identity_ids = optional(list(string), [])
+    }), null)
+  }))
+
+  validation {
+    condition = alltrue([
+      for key, val in var.additional_queries :
+        contains(keys(local.default_queries), key) ||
+        try(val.query_path, null) != null
+    ])
+    error_message = "Custom alert rules must include query_path."
+  }
+
+  default     = {}
+  nullable    = false
+  description = <<-DOC
+  ```
+  List of additional alert rule queries to create with a file path, description and time_window.
+  {
+    "query_path"                        = Path to the kusto query file.
+    "description"                       = Description of the alert rule.
+    "time_window"                       = Time window for the alert rule,                                e.g. "PT5M", "P1D",                           "P2D".
+    "frequency"                         = Frequency of evaluation,                                       e.g. "PT5M", "PT15M".
+    "non_productive"                    = If true,                                                       the alert will use the non productive action group.
+    "display_name"                      = Optional display name for the alert rule. If not set,          the resource name will be used.
+    "query_time_range_override"         = Optional time range override for the query,                    e.g. "P1D",  "P2D". If not set,               the time_window will be used.
+    "enabled"                           = Optional If the rule is enabled. Default is true.
+    "severity"                          = Optional Severity of the alert rule. Default is 0.
+    "skip_query_validation"             = Optional If true,                                              the query validation will be skipped. Default is true.
+    "target_resource_types"             = Optional List of resource types to target. If not set,         the default resource types will be used.
+    "mute_actions_after_alert_duration" = Optional duration to mute actions after an alert is triggered, e.g. "PT1H", "P1D". Possible values are PT5M, PT10M, PT15M, PT30M, PT45M, PT1H, PT2H, PT3H, PT4H, PT5H, PT6H, P1D and P2D.
+    "include_failing_periods"           = Optional object to include failing periods in the alert rule.
+      {
+        minimum_failing_periods_to_trigger_alert = number of failing periods to trigger the alert.
+        number_of_evaluation_periods             = number of evaluation periods to consider.
+      }
+
+    "identity"   = Optional object to include a managed identity in the additional query.
+      {
+        type = managed identity type (UserAssigned or SystemAssigned)
+        identity_ids             = An optional list with the ids of the managed identity we want to associate.
+      }
+  }
+  ```
+  DOC
+}
+
 variable "tags" {
   type        = map(string)
   description = "Tags that will be assigned to all resources."
