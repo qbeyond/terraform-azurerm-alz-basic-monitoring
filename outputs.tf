@@ -29,13 +29,15 @@ output "scheduled_query_rules_v2" {
 
 output "alert_rules_for_role_assignments" {
   description = "Alert rules keyed by statically known names with their principal IDs."
+
   value = (
     var.alert_rule_identity != null &&
     lower(var.alert_rule_identity.type) == "systemassigned"
   ) ? {
-    for rule_name in keys(local.all_alertrules) :
+    for rule_name, rule in azurerm_monitor_scheduled_query_rules_alert_v2.this :
     rule_name => {
-      principal_id = azurerm_monitor_scheduled_query_rules_alert_v2.this[rule_name].identity[0].principal_id
+      principal_id = try(rule.identity[0].principal_id, null)
     }
+    if try(rule.identity[0].principal_id, null) != null
   } : {}
 }
