@@ -48,9 +48,10 @@ locals {
     severity                  = 0
     skip_query_validation     = true
     target_resource_types     = [
-      "microsoft.compute/virtualmachines",
-      "microsoft.hybridcompute/machines",
-      "microsoft.compute/virtualmachinescalesets"
+      "Microsoft.OperationalInsights/workspaces",
+      "Microsoft.Compute/virtualMachines",
+      "Microsoft.HybridCompute/machines",
+      "Microsoft.Compute/virtualMachineScaleSets"
     ]
     include_failing_periods = null
     identity                = var.alert_rule_identity
