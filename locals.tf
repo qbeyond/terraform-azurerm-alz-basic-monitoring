@@ -77,9 +77,13 @@ locals {
     }
   }
 
+  event_rules_processed = {
+    for key, value in local.event_rule :
+    key => merge(local.empty_query_object, value)
+  }
+
   all_alertrules = merge(
     local.rules,
-    length(local.selected_events) > 0 ? local.event_rule : {}
+    length(local.selected_events) > 0 ? local.event_rules_processed : {}
   )
-
 }
