@@ -74,8 +74,9 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "this" {
   }
 
   target_resource_types = lookup(each.value, "target_resource_types",[
-    "microsoft.compute/virtualmachines",
-    "microsoft.hybridcompute/machines",
-    "microsoft.compute/virtualmachinescalesets"
+    "Microsoft.OperationalInsights/workspaces",
+    "Microsoft.Compute/virtualMachines",
+    "Microsoft.HybridCompute/machines",
+    "Microsoft.Compute/virtualMachineScaleSets"
   ])
 }
