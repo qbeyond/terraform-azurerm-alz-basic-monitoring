@@ -44,6 +44,16 @@ module "monitoring" {
     }
   ]
 
+  additional_queries = {
+    "alr-prd-unix_heartbeat_time_generated-01" : {
+      description                       = "Alert when filesystem of Windows runs out of space"
+      query_path                        = "${path.module}/queries/unix_heartbeat_time_generated.kusto"
+      time_window                       = "P2D"
+      frequency                         = "PT5M"
+      query_time_range_override         = "P2D"
+      mute_actions_after_alert_duration = "P1D"
+    }
+  }
 }
 
 resource "azurerm_role_assignment" "monitoring_law_reader" {
