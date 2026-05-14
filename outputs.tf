@@ -22,15 +22,7 @@ output "vminsights_dcr_id" {
   description = "Resource ID of the VM-Insights DCR that should be associated with every VM."
 }
 
-output "alert_rules_for_role_assignments" {
-  description = "Alert rules keyed by statically known names with their principal IDs."
-  value = (
-    var.alert_rule_identity != null &&
-    lower(var.alert_rule_identity.type) == "systemassigned"
-  ) ? {
-    for rule_name in keys(local.all_alertrules) :
-    rule_name => {
-      principal_id = azurerm_monitor_scheduled_query_rules_alert_v2.this[rule_name].identity[0].principal_id
-    }
-  } : {}
+output "scheduled_query_rules_v2" {
+  description = "A map of the Scheduled Query Rule Alert V2 resources. Contains the full configuration for each alert, including the rendered KQL queries, action groups, and evaluation settings."
+  value       = azurerm_monitor_scheduled_query_rules_alert_v2.this
 }

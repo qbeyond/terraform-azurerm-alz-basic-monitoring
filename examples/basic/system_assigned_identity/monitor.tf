@@ -44,20 +44,28 @@ module "monitoring" {
     }
   ]
 
+  additional_queries = {
+    "alr-prd-unix_heartbeat_time_generated-01" : {
+      description                       = "Alert when filesystem of Windows runs out of space"
+      query_path                        = "${path.module}/queries/unix_heartbeat_time_generated.kusto"
+      time_window                       = "P2D"
+      frequency                         = "PT5M"
+      query_time_range_override         = "P2D"
+      mute_actions_after_alert_duration = "P1D"
+    }
+  }
 }
 
 resource "azurerm_role_assignment" "monitoring_law_reader" {
-  for_each = module.monitoring.alert_rules_for_role_assignments
-
+  for_each             = module.monitor.scheduled_query_rules_v2
   scope                = local.law_output.id
   role_definition_name = "Log Analytics Reader"
-  principal_id         = each.value.principal_id
+  principal_id         = try(each.value.identity[0].principal_id, null)
 }
 
 resource "azurerm_role_assignment" "monitoring_reader" {
-  for_each = module.monitoring.alert_rules_for_role_assignments
-
+  for_each             = module.monitor.scheduled_query_rules_v2
   scope                = local.law_output.id
   role_definition_name = "Reader"
-  principal_id         = each.value.principal_id
+  principal_id         = try(each.value.identity[0].principal_id, null)
 }

@@ -25,26 +25,16 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "this" {
   resource_group_name = var.log_analytics_workspace.resource_group_name
   tags                = var.tags
 
-  dynamic "identity" {
-    for_each = var.alert_rule_identity != null ? [var.alert_rule_identity] : []
-    content {
-      type         = identity.value.type
-      identity_ids = identity.value.type == "UserAssigned" ? identity.value.identity_ids : null
-    }
-  }
-
   scopes                = [var.log_analytics_workspace.id]
   description           = each.value.description
-  enabled               = true
-  severity              = 0
-  skip_query_validation = true
-  # Alert logic
-  evaluation_frequency = each.value.frequency
-  # Measurement - Aggregation granularity
-  window_duration = each.value.time_window
+  enabled               = lookup(each.value, "enabled", true)
+  severity              = lookup(each.value, "severity", 0)
+  skip_query_validation = lookup(each.value, "skip_query_validation", true)
+  evaluation_frequency  = each.value.frequency
+  window_duration       = each.value.time_window
+  
   # Advanced options
-  query_time_range_override = lookup(each.value, "query_time_range_override", null)
-  # Mute actions
+  query_time_range_override         = lookup(each.value, "query_time_range_override", null)
   mute_actions_after_alert_duration = lookup(each.value, "mute_actions_after_alert_duration", null)
 
   action {
@@ -59,12 +49,6 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "this" {
     time_aggregation_method = "Count"
     operator                = "GreaterThan"
     threshold               = 0
-
-    # dimension {
-    #   name     = "ResourceId"
-    #   operator = "Include"
-    #   values   = ["*"]
-    # }
 
     # Advanced options
     dynamic "failing_periods" {
@@ -81,10 +65,18 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "this" {
     resource_id_column = "ResourceId"
   }
 
-  target_resource_types = [
+  dynamic "identity" {
+    for_each = try(each.value.identity, null) != null ? [each.value.identity] : []
+    content {
+      type         = identity.value.type
+      identity_ids = lower(identity.value.type) == "userassigned" ? try(identity.value.identity_ids, []) :   null
+    }
+  }
+
+  target_resource_types = lookup(each.value, "target_resource_types",[
     "Microsoft.OperationalInsights/workspaces",
     "Microsoft.Compute/virtualMachines",
     "Microsoft.HybridCompute/machines",
     "Microsoft.Compute/virtualMachineScaleSets"
-  ]
+  ])
 }
